@@ -1,14 +1,13 @@
 package com.hungerbet.hungerbetgame;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hungerbet.hungerbetgame.models.GameResponse;
 import com.hungerbet.hungerbetgame.models.PlayerResponse;
 import com.hungerbet.hungerbetgame.models.auth.AuthRequest;
 import com.hungerbet.hungerbetgame.models.auth.TokenResponseModel;
 import com.hungerbet.hungerbetgame.models.domain.Event;
+import com.hungerbet.hungerbetgame.models.domain.EventBody;
 import com.hungerbet.hungerbetgame.models.domain.EventType;
-import com.hungerbet.hungerbetgame.models.domain.PlayerEvent;
+import com.hungerbet.hungerbetgame.models.domain.PlayerState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -50,17 +49,13 @@ public class Scheduler {
         List<GameResponse> gameResponses = template.exchange(apiPath + "/games", HttpMethod.GET, requestEntity, new ParameterizedTypeReference<List<GameResponse>>() {
         }).getBody();
 
-        GameResponse gameResponse = gameResponses.stream().filter(game -> game.getStatus().equals("ONGOING")).findFirst().orElse(null);
-        PlayerResponse playerResponse = gameResponse.getPlayers().stream().filter(player -> !player.getState().equals("DEAD")).findFirst().orElse(null);
+        GameResponse gameResponse = gameResponses.stream().filter(game -> game.getStatus().equals("ongoing")).findFirst().orElse(null);
+        PlayerResponse playerResponse = gameResponse.getPlayers().stream().filter(player -> !player.getState().equals("dead")).findFirst().orElse(null);
 
         if (playerResponse != null) {
-            ObjectMapper mapper = new ObjectMapper();
-            try {
-                String body = mapper.writeValueAsString(new PlayerEvent(playerResponse));
-                Event event = new Event(gameResponse.getId(), EventType.KILLED_EVENT, body);
-                eventService.SendEvent(event);
-            } catch (JsonProcessingException ignored) {
-            }
+            EventBody eventBody = EventBody.CreatePlayerEvent(playerResponse.getId(), PlayerState.dead);
+            Event event = new Event(gameResponse.getId(), EventType.player, eventBody);
+            eventService.SendEvent(event);
         }
     }
 }
