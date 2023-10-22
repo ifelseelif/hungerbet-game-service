@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Random;
 
 @Component
 @EnableScheduling
@@ -52,10 +53,41 @@ public class Scheduler {
         GameResponse gameResponse = gameResponses.stream().filter(game -> game.getStatus().equals("ongoing")).findFirst().orElse(null);
         PlayerResponse playerResponse = gameResponse.getPlayers().stream().filter(player -> !player.getState().equals("dead")).findFirst().orElse(null);
 
-        if (playerResponse != null) {
-            EventBody eventBody = EventBody.CreatePlayerEvent(playerResponse.getId(), PlayerState.dead);
-            Event event = new Event(gameResponse.getId(), EventType.player, eventBody);
-            eventService.SendEvent(event);
+        List<EventType> eventTypes = List.of(EventType.supply, EventType.other, EventType.player_killed, EventType.player_injured);
+        Random random = new Random();
+        EventType eventType = eventTypes.get(random.nextInt(eventTypes.size()));
+
+        if (playerResponse == null) {
+            System.out.println("Nothing to send");
+            return;
         }
+
+        switch (eventType) {
+            case supply -> {
+                int itemRnd = new Random().nextInt(Names.items.size());
+                String itemName = Names.items.get(itemRnd);
+                EventBody eventBody = EventBody.CreateSupplyEvent(playerResponse.getId(), itemName);
+                Event event = new Event(gameResponse.getId(), EventType.supply, eventBody);
+                eventService.SendEvent(event);
+            }
+            case player_killed -> {
+                EventBody eventBody = EventBody.CreatePlayerEvent(playerResponse.getId(), PlayerState.dead);
+                Event event = new Event(gameResponse.getId(), EventType.player_killed, eventBody);
+                eventService.SendEvent(event);
+            }
+            case other -> {
+                EventBody eventBody = EventBody.CreateOtherEvent(playerResponse.getId(), "достиг рога изобилия");
+                Event event = new Event(gameResponse.getId(), EventType.other, eventBody);
+                eventService.SendEvent(event);
+            }
+            case player_injured -> {
+                List<PlayerState> states = List.of(PlayerState.moderate_injury, PlayerState.severe_injury, PlayerState.slight_injury);
+                EventBody eventBody = EventBody.CreatePlayerEvent(playerResponse.getId(), states.get(random.nextInt(states.size())));
+                Event event = new Event(gameResponse.getId(), EventType.player_injured, eventBody);
+                eventService.SendEvent(event);
+            }
+        }
+
+        System.out.println("SMTH SENDED");
     }
 }
