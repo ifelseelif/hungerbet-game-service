@@ -20,8 +20,12 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.stream.Collectors;
+
+import static com.fasterxml.jackson.databind.type.LogicalType.Collection;
 
 @Component
 @EnableScheduling
@@ -51,7 +55,7 @@ public class Scheduler {
         }).getBody();
 
         GameResponse gameResponse = gameResponses.stream().filter(game -> game.getStatus().equals("ongoing")).findFirst().orElse(null);
-        PlayerResponse playerResponse = gameResponse.getPlayers().stream().filter(player -> !player.getState().equals("dead")).findFirst().orElse(null);
+        PlayerResponse playerResponse = gameResponse.getPlayers().values().stream().flatMap(item -> item.stream()).collect(Collectors.toList()).stream().filter(player -> !player.getState().equals("dead")).findFirst().orElse(null);
 
         List<EventType> eventTypes = List.of(EventType.supply, EventType.other, EventType.player_killed, EventType.player_injured);
         Random random = new Random();

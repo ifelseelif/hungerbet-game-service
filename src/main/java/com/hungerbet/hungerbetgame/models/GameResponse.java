@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Data
@@ -14,5 +15,5 @@ import java.util.UUID;
 public class GameResponse {
     private UUID id;
     private String status;
-    private List<PlayerResponse> players;
+    private Map<Integer, List<PlayerResponse>> players;
 }
